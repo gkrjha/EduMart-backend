@@ -8,7 +8,6 @@ import { UsermanagementModule } from './modules/usermanagement/usermanagement.mo
 import { StudentsController } from './modules/students/students.controller';
 import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
-import { AdminsService } from './modules/admins/admins.service';
 import { AdminsModule } from './modules/admins/admins.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CoursesModule } from './modules/courses/courses.module';
@@ -26,6 +25,6 @@ import { CoursesModule } from './modules/courses/courses.module';
     CoursesModule,
   ],
   controllers: [AppController, StudentsController],
-  providers: [AppService, AdminsService],
+  providers: [AppService],
 })
 export class AppModule {}
