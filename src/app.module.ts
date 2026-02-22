@@ -9,14 +9,17 @@ import { StudentsController } from './modules/students/students.controller';
 import { StudentsModule } from './modules/students/students.module';
 import { TeachersModule } from './modules/teachers/teachers.module';
 import { AdminsModule } from './modules/admins/admins.module';
-import { AuthModule } from './modules/auth/auth.module';
 import { CoursesModule } from './modules/courses/courses.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { MulterModule } from './common/multer/multer.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       useClass: DatabaseConfigService,
     }),
+    MulterModule,
     UsermanagementModule,
     StudentsModule,
     TeachersModule,

@@ -1,3 +1,5 @@
+import { Exclude } from 'class-transformer';
+import { IsOptional } from 'class-validator';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('user_managements')
@@ -8,10 +10,11 @@ export class Usermanagement {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ unique: true })
   email: string;
 
   @Column()
+  @Exclude()
   password: string;
 
   @Column()

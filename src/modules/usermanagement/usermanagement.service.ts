@@ -21,4 +21,5 @@ export class UsermanagementService {
     const user = this.userRepository.create(usermanagementdot);
     return this.userRepository.save(user);
   }
+
 }

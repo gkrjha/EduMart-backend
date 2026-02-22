@@ -1,5 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsNumberString, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsNumberString,
+  IsOptional,
+  IsString,
+  IsUrl,
+} from 'class-validator';
 
 export class CreateAdminDto {
   @ApiProperty({
@@ -60,4 +67,8 @@ export class CreateAdminDto {
   @IsString()
   @IsNotEmpty()
   refId: string;
+
+  @ApiPropertyOptional({ type: 'string', format: 'binary' })
+  @IsOptional()
+  profile?: any;
 }
