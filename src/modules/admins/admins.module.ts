@@ -5,12 +5,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Admin } from './entities/admin.entities';
 import { UsermanagementModule } from '../usermanagement/usermanagement.module';
 import { CloudinaryModule } from 'src/common/cloudinary/cloudinary.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Admin]),
     UsermanagementModule,
     CloudinaryModule,
+    AuthModule,
   ],
   controllers: [AdminsController],
   providers: [AdminsService],

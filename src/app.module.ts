@@ -12,6 +12,7 @@ import { AdminsModule } from './modules/admins/admins.module';
 import { CoursesModule } from './modules/courses/courses.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MulterModule } from './common/multer/multer.module';
+import { JwtStrategy } from './common/jwt/jwt.strategy';
 
 @Module({
   imports: [
@@ -28,6 +29,6 @@ import { MulterModule } from './common/multer/multer.module';
     CoursesModule,
   ],
   controllers: [AppController, StudentsController],
-  providers: [AppService],
+  providers: [AppService, JwtStrategy],
 })
 export class AppModule {}

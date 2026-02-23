@@ -20,6 +20,9 @@ export class Usermanagement {
   @Column()
   role: string;
 
-  @Column()
+  @Column({ nullable: true })
+  refId: string;
+
+  @Column({ nullable: true })
   status: string;
 }

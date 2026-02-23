@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsAlphanumeric,
   IsEmail,
   IsNotEmpty,
   IsNumberString,
@@ -32,7 +33,7 @@ export class CreateAdminDto {
     example: 'password123',
     required: true,
   })
-  @IsNumberString()
+  @IsAlphanumeric()
   @IsNotEmpty()
   password: string;
 
@@ -63,9 +64,9 @@ export class CreateAdminDto {
   @IsNotEmpty()
   status: string;
 
-  @ApiProperty({ description: 'Ref id of the admin', required: true })
+  @ApiProperty({ description: 'Ref id of the admin' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   refId: string;
 
   @ApiPropertyOptional({ type: 'string', format: 'binary' })

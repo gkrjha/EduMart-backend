@@ -1,8 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsAlphanumeric,
   IsEmail,
   IsNotEmpty,
   IsNumberString,
+  IsOptional,
   IsString,
   IsUrl,
 } from 'class-validator';
@@ -31,7 +33,7 @@ export class UsermanagementDto {
     example: 'password123',
     required: true,
   })
-  @IsNumberString()
+  @IsAlphanumeric()
   @IsNotEmpty()
   password: string;
 
@@ -53,9 +55,9 @@ export class UsermanagementDto {
   @IsNotEmpty()
   status: string;
 
-  @ApiProperty({ description: 'Ref id of the admin', required: true })
+  @ApiProperty({ description: 'Ref id of the admin' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   refId: string;
 
   @ApiProperty()

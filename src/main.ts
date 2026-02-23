@@ -16,6 +16,16 @@ async function bootstrap() {
     .setDescription('The Education Mart API description')
     .setVersion('1.0')
     .addTag('education-mart')
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        in: 'header',
+      },
+      'access-token',
+    )
     .build();
 
   const documentFactory = () => SwaggerModule.createDocument(app, config);

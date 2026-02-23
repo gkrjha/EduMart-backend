@@ -21,7 +21,7 @@ export class Admin {
   @Column()
   status: string;
 
-  @Column()
+  @Column({ nullable: true })
   refId: string;
 
   @Column({ nullable: true })
