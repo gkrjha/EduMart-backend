@@ -1,5 +1,12 @@
+import { IsOptional } from 'class-validator';
 import { UUID } from 'crypto';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
 
 @Entity('admins')
 export class Admin {
@@ -12,8 +19,8 @@ export class Admin {
   @Column({ unique: true })
   email: string;
 
-  @Column()
-  role: string;
+  @Column({ nullable: true })
+  role?: string;
 
   @Column()
   phone: string;
@@ -21,9 +28,19 @@ export class Admin {
   @Column()
   status: string;
 
-  @Column({ nullable: true })
-  refId: string;
+  @ManyToOne(() => Admin, (admin) => admin.subAdmins, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  createdBy?: Admin;
+
+  @OneToMany(() => Admin, (admin) => admin.createdBy)
+  subAdmins: Admin[];
 
   @Column({ nullable: true })
   profile?: string;
+
+  @Column({ default: true })
+  @IsOptional()
+  isSasS: boolean;
 }

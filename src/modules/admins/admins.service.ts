@@ -18,8 +18,11 @@ export class AdminsService {
 
   async create(
     createAdminDto: CreateAdminDto,
+    clientId: string,
     profile?: Express.Multer.File,
   ): Promise<Admin> {
+    console.log(clientId);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -45,6 +48,7 @@ export class AdminsService {
       // const admin = this.adminRepository.create(createAdminDto);
       const admin = queryRunner.manager.create(Admin, {
         ...createAdminDto,
+        createdBy: { id: clientId } as Admin,
         profile: profileUrl,
       });
 
@@ -119,7 +123,7 @@ export class AdminsService {
 
         await manager.update(
           Usermanagement,
-          { refId: admin.refId },
+          { refId: admin.id },
           {
             name: updateAdminDto.name ?? admin.name,
           },
@@ -147,10 +151,26 @@ export class AdminsService {
   }
 
   async findOne(id: string): Promise<Admin | null> {
-    return await this.adminRepository.findOne({ where: { id } });
+    return await this.adminRepository
+      .createQueryBuilder('admin')
+      .where('admin.id = :id', { id })
+      .loadRelationCountAndMap('admin.subAdminCount', 'admin.subAdmins')
+      .getOne();
   }
 
-  async findAll(): Promise<Admin[]> {
-    return await this.adminRepository.find();
+  async findAll(search?: string | null): Promise<Admin[]> {
+    const admin = await this.adminRepository
+      .createQueryBuilder('admin')
+      .select()
+      .loadRelationCountAndMap('admin.subAdminCount', 'admin.subAdmins')
+      .leftJoinAndSelect('admin.subAdmins', 'subAdmin');
+
+    if (search) {
+      admin.where('admin.name ILIKE :search OR admin.email ILIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    return admin.getMany();
   }
 }

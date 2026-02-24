@@ -10,7 +10,11 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
   app.setGlobalPrefix(apiPrefix);
-  app.useGlobalPipes(new ValidationPipe());
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  );
   const config = new DocumentBuilder()
     .setTitle('Education Mart')
     .setDescription('The Education Mart API description')
@@ -38,4 +42,5 @@ async function bootstrap() {
     `Swagger docs available at: http://localhost:${port}/${apiPrefix}/docs`,
   );
 }
+
 bootstrap();

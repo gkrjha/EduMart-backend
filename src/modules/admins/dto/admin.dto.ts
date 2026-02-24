@@ -1,12 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsAlphanumeric,
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsNumberString,
   IsOptional,
   IsString,
   IsUrl,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateAdminDto {
@@ -37,14 +40,14 @@ export class CreateAdminDto {
   @IsNotEmpty()
   password: string;
 
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'The role of the admin',
     example: 'admin',
     required: true,
   })
   @IsString()
-  @IsNotEmpty()
-  role: string;
+  @IsOptional()
+  role?: string;
 
   @ApiProperty({
     description: 'The phone number of the admin',
@@ -64,12 +67,12 @@ export class CreateAdminDto {
   @IsNotEmpty()
   status: string;
 
-  @ApiProperty({ description: 'Ref id of the admin' })
-  @IsString()
-  @IsOptional()
-  refId: string;
-
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
   @IsOptional()
   profile?: any;
+
+  @ApiPropertyOptional()
+  @IsBoolean()
+  @Transform(({ value }) => value === 'true')
+  isSasS: boolean;
 }

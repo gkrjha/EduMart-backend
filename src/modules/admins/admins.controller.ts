@@ -6,11 +6,19 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiQuery,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateAdminDto } from './dto/admin.dto';
 import { Admin } from './entities/admin.entities';
 import { AdminsService } from './admins.service';
@@ -26,11 +34,16 @@ export class AdminsController {
   @ApiBody({ type: CreateAdminDto })
   @UseInterceptors(FileInterceptor('profile'))
   @ApiConsumes('multipart/form-data')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   async create(
     @Body() createAdminDto: CreateAdminDto,
+    @Req() req: Request,
     @UploadedFile() profile?: Express.Multer.File,
   ): Promise<Admin> {
-    return this.adminService.create(createAdminDto, profile);
+    const clientId = (req as any).user.id as string;
+    console.log(clientId);
+    return this.adminService.create(createAdminDto, clientId, profile);
   }
 
   @Patch('update-admin/:id')
@@ -49,11 +62,13 @@ export class AdminsController {
   async delete(@Param('id') id: string): Promise<void> {
     return this.adminService.delete(id);
   }
+
   @Get('find-all')
   @ApiBearerAuth('access-token')
+  @ApiQuery({ name: 'search', required: false, type: String })
   @UseGuards(JwtAuthGuard)
-  async findAll(): Promise<Admin[]> {
-    return this.adminService.findAll();
+  async findAll(@Query('search') search?: string | null): Promise<Admin[]> {
+    return this.adminService.findAll(search);
   }
 
   @Get('find-one/:id')
