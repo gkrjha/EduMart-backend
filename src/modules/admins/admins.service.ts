@@ -7,6 +7,8 @@ import { Usermanagement } from '../usermanagement/entities/usermanagement.entiti
 import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
 import { UpdateAdminDto } from './dto/updateadmin.dto';
 import { InjectRepository } from '@nestjs/typeorm';
+import { MailService } from 'src/mail/mail.service';
+import { UserStatus } from 'src/common/enum';
 @Injectable()
 export class AdminsService {
   constructor(
@@ -48,6 +50,7 @@ export class AdminsService {
       // const admin = this.adminRepository.create(createAdminDto);
       const admin = queryRunner.manager.create(Admin, {
         ...createAdminDto,
+        status: UserStatus.ACTIVE,
         createdBy: { id: clientId } as Admin,
         profile: profileUrl,
       });
@@ -158,10 +161,14 @@ export class AdminsService {
       .getOne();
   }
 
-  async findAll(search?: string | null): Promise<Admin[]> {
+  async findAll(
+    search?: string | null,
+    loginAdminId?: string,
+  ): Promise<Admin[]> {
     const admin = await this.adminRepository
       .createQueryBuilder('admin')
       .select()
+      .where('admin.id != :loginAdminId', { loginAdminId })
       .loadRelationCountAndMap('admin.subAdminCount', 'admin.subAdmins')
       .leftJoinAndSelect('admin.subAdmins', 'subAdmin');
 

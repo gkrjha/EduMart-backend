@@ -13,12 +13,17 @@ import { CoursesModule } from './modules/courses/courses.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { MulterModule } from './common/multer/multer.module';
 import { JwtStrategy } from './common/jwt/jwt.strategy';
+import { MailModule } from './mail/mail.module';
+import { Certificate } from './modules/teachers/entities/certificate.entity';
+import { Teacher } from './modules/teachers/entities/teacher.entity';
+import { Admin } from './modules/admins/entities/admin.entities';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRootAsync({
       useClass: DatabaseConfigService,
+      
     }),
     MulterModule,
     UsermanagementModule,
@@ -27,6 +32,7 @@ import { JwtStrategy } from './common/jwt/jwt.strategy';
     AdminsModule,
     AuthModule,
     CoursesModule,
+    MailModule,
   ],
   controllers: [AppController, StudentsController],
   providers: [AppService, JwtStrategy],

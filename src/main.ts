@@ -15,6 +15,12 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  app.enableCors({
+    origin: '*',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: 'Content-Type, Accept, Authorization',
+  });
   const config = new DocumentBuilder()
     .setTitle('Education Mart')
     .setDescription('The Education Mart API description')
