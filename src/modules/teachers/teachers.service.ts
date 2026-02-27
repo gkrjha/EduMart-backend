@@ -7,6 +7,7 @@ import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
 import { Admin } from '../admins/entities/admin.entities';
 import { Usermanagement } from '../usermanagement/entities/usermanagement.entities';
 import * as bcrypt from 'bcrypt';
+import { UpdateTeacherDto } from './dtos/updateteacher.dto';
 @Injectable()
 export class TeachersService {
   constructor(
@@ -82,6 +83,76 @@ export class TeachersService {
       await manager.save(usermanagement);
 
       return savedTeacher;
+    });
+  }
+
+  async update(
+    id: string,
+    updateTeacherDto: UpdateTeacherDto,
+    files: {
+      profile?: Express.Multer.File[];
+      master_certificate?: Express.Multer.File[];
+    },
+  ): Promise<Teacher> {
+    return this.dataSource.transaction(async (manager) => {
+      const teacher = await manager.findOne(Teacher, {
+        where: { id },
+        relations: ['certificates'],
+      });
+
+      if (!teacher) {
+        throw new NotFoundException(`Teacher with ID ${id} not found`);
+      }
+      if (files.profile?.[0]) {
+        const uploaded = await this.cloudinaryService.uploadImage(
+          files.profile[0],
+          'teachers',
+        );
+        teacher.profile = uploaded.secure_url;
+      }
+
+      if (updateTeacherDto.password) {
+        teacher.password = await bcrypt.hash(updateTeacherDto.password, 10);
+      }
+
+      if (updateTeacherDto.name !== undefined)
+        teacher.name = updateTeacherDto.name;
+      if (updateTeacherDto.phone !== undefined)
+        teacher.phone = updateTeacherDto.phone;
+      if (updateTeacherDto.qualification !== undefined)
+        teacher.qualification = updateTeacherDto.qualification;
+      if (updateTeacherDto.experience !== undefined)
+        teacher.experience = updateTeacherDto.experience;
+      if (updateTeacherDto.status !== undefined)
+        teacher.status = updateTeacherDto.status;
+
+      const updatedTeacher = await manager.save(teacher);
+      if (files.master_certificate?.[0] && teacher.certificates?.[0]) {
+        const uploaded = await this.cloudinaryService.uploadImage(
+          files.master_certificate[0],
+          'certificates',
+        );
+        teacher.certificates[0].master_certificate = uploaded.secure_url;
+        await manager.save(teacher.certificates[0]);
+      }
+      const userManagement = await manager.findOne(Usermanagement, {
+        where: { refId: id, role: 'teacher' },
+      });
+
+      if (userManagement) {
+        if (updateTeacherDto.name !== undefined)
+          userManagement.name = updateTeacherDto.name;
+        if (updateTeacherDto.email !== undefined)
+          userManagement.email = updateTeacherDto.email;
+        if (updateTeacherDto.password)
+          userManagement.password = teacher.password;
+        if (updateTeacherDto.status !== undefined)
+          userManagement.status = updateTeacherDto.status;
+
+        await manager.save(userManagement);
+      }
+
+      return updatedTeacher;
     });
   }
 }

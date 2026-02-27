@@ -1,7 +1,7 @@
 import { IsOptional } from 'class-validator';
 import { UUID } from 'crypto';
 import { Teacher } from 'src/modules/teachers/entities/teacher.entity';
-import { UserStatus } from 'src/common/enum';
+import { Role, UserStatus } from 'src/common/enums/enum';
 import {
   Column,
   Entity,
@@ -22,8 +22,8 @@ export class Admin {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  role?: string;
+  @Column({ type: 'enum', enum: Role, nullable: true })
+  role?: Role;
 
   @Column()
   phone: string;

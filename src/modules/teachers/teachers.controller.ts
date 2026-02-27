@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Patch,
   Post,
   Req,
   UploadedFiles,
@@ -27,7 +28,7 @@ import { TeachersService } from './teachers.service';
 @Controller('teachers')
 export class TeachersController {
   constructor(private readonly teacherService: TeachersService) {}
-  @Post('create-admin')
+  @Post('create-teacher')
   @ApiBody({ type: TeacherDTO })
   @UseInterceptors(
     FileFieldsInterceptor([
@@ -55,4 +56,7 @@ export class TeachersController {
   ): Promise<Teacher> {
     return this.teacherService.create(teacher, req.user.id, files);
   }
+
+  @Patch('update/:id')
+  
 }

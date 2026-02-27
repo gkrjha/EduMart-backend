@@ -48,7 +48,6 @@ export class CreateAdminDto {
     required: true,
   })
   @IsString()
-  @IsOptional()
   role?: string;
 
   @ApiProperty({

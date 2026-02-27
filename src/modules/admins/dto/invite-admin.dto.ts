@@ -4,6 +4,7 @@ import {
   IsAlphanumeric,
   IsBoolean,
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsNumberString,
   IsOptional,
@@ -11,6 +12,7 @@ import {
   IsUrl,
   IsUUID,
 } from 'class-validator';
+import { Role } from 'src/common/enums/enum';
 
 export class InviteAdminDto {
   @ApiProperty({
@@ -21,4 +23,10 @@ export class InviteAdminDto {
   @IsEmail()
   @IsNotEmpty()
   email: string;
+
+  @ApiProperty({
+    required: true,
+  })
+  @IsEnum(Role)
+  role: Role;
 }

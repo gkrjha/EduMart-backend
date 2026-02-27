@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { Certificate } from './certificate.entity';
 import { Admin } from 'src/modules/admins/entities/admin.entities';
-import { UserStatus } from 'src/common/enum';
+import { UserStatus } from 'src/common/enums/enum';
 
 @Entity('teachers')
 export class Teacher {

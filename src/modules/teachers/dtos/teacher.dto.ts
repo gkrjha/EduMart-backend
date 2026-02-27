@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { UserStatus } from 'src/common/enum';
+import { UserStatus } from 'src/common/enums/enum';
 import { IsEnum } from 'class-validator';
 import { Transform } from 'class-transformer';
 

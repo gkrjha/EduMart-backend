@@ -17,9 +17,12 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: '*',
+    origin: true, // Development ke liye - production mein specific origins use karein
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     allowedHeaders: 'Content-Type, Accept, Authorization',
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
   });
   const config = new DocumentBuilder()
     .setTitle('Education Mart')
