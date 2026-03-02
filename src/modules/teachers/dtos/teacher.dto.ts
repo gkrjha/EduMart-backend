@@ -41,4 +41,7 @@ export class TeacherDTO {
 
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
   master_certificate?: any;
+
+  @ApiProperty({ type: 'array', items: { type: 'string' } })
+  specialization: string[];
 }

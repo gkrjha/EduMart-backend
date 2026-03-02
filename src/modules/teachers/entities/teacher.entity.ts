@@ -45,4 +45,7 @@ export class Teacher {
 
   @OneToMany(() => Certificate, (certificate) => certificate.teacher)
   certificates: Certificate[];
+
+  @Column('simple-array')
+  specialization: string[];
 }
