@@ -1,13 +1,16 @@
 import {
   Column,
   Entity,
+  JoinTable,
+  ManyToMany,
   ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Certificate } from './certificate.entity';
 import { Admin } from 'src/modules/admins/entities/admin.entities';
-import { UserStatus } from 'src/common/enums/enum';
+import { Gender, Qualification, UserStatus } from 'src/common/enums/enum';
+import { Specialization } from 'src/modules/specializations/entities/specialization.entity';
 
 @Entity('teachers')
 export class Teacher {
@@ -26,8 +29,11 @@ export class Teacher {
   @Column()
   phone: string;
 
-  @Column()
-  qualification: string;
+  @Column({ type: 'enum', enum: Gender })
+  gender: Gender;
+
+  @Column({ type: 'enum', enum: Qualification })
+  qualification: Qualification;
 
   @Column()
   experience: number;
@@ -46,6 +52,14 @@ export class Teacher {
   @OneToMany(() => Certificate, (certificate) => certificate.teacher)
   certificates: Certificate[];
 
-  @Column('simple-array')
-  specialization: string[];
+  @ManyToMany(() => Specialization)
+  @JoinTable({
+    name: 'teacher_specializations',
+    joinColumn: { name: 'teacher_id', referencedColumnName: 'id' },
+    inverseJoinColumn: {
+      name: 'specialization_id',
+      referencedColumnName: 'id',
+    },
+  })
+  specializations: Specialization[];
 }

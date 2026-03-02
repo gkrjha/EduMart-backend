@@ -18,6 +18,9 @@ export class Certificate {
   @Column({ nullable: true })
   master_certificate?: string;
 
+  @Column({ nullable: true })
+  phD: string;
+
   @ManyToOne(() => Teacher, (teacher) => teacher.certificates)
   teacher: Teacher;
 }

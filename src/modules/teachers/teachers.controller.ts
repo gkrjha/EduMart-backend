@@ -48,6 +48,7 @@ export class TeachersController {
       { name: 'xii_certificate', maxCount: 1 },
       { name: 'bachlor_certificate', maxCount: 1 },
       { name: 'master_certificate', maxCount: 1 },
+      { name: 'phD', maxCount: 1 },
     ]),
   )
   @ApiConsumes('multipart/form-data')
@@ -63,6 +64,7 @@ export class TeachersController {
       xii_certificate?: Express.Multer.File;
       bachlor_certificate?: Express.Multer.File;
       master_certificate?: Express.Multer.File;
+      phD?: Express.Multer.File;
     },
   ): Promise<Teacher | null> {
     return this.teacherService.create(teacher, req.user.id, files);

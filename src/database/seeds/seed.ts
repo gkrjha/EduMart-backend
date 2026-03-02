@@ -1,9 +1,11 @@
 import { DataSource } from 'typeorm';
 import { seedAdmin } from './admin.seeder';
+import { seedSpecializations } from './specialization.seeder';
 import { Admin } from '../../modules/admins/entities/admin.entities';
 import { Teacher } from '../../modules/teachers/entities/teacher.entity';
 import { Certificate } from '../../modules/teachers/entities/certificate.entity';
 import { Usermanagement } from '../../modules/usermanagement/entities/usermanagement.entities';
+import { Specialization } from '../../modules/specializations/entities/specialization.entity';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -16,7 +18,7 @@ async function runSeeders() {
     username: process.env.DATABASE_USERNAME,
     password: process.env.DATABASE_PASSWORD,
     database: process.env.DATABASE_NAME,
-    entities: [Admin, Teacher, Certificate, Usermanagement],
+    entities: [Admin, Teacher, Certificate, Usermanagement, Specialization],
     synchronize: false,
   });
 
@@ -24,6 +26,7 @@ async function runSeeders() {
     await dataSource.initialize();
     console.log('Database connection established');
 
+    await seedSpecializations(dataSource);
     await seedAdmin(dataSource);
 
     console.log('All seeders completed successfully');

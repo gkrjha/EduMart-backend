@@ -7,12 +7,13 @@ import {
   UploadedFile,
 } from '@nestjs/common';
 import { TeacherDTO } from './dtos/teacher.dto';
-import { DataSource, QueryBuilder } from 'typeorm';
+import { DataSource, In, QueryBuilder } from 'typeorm';
 import { Certificate } from './entities/certificate.entity';
 import { Teacher } from './entities/teacher.entity';
 import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
 import { Admin } from '../admins/entities/admin.entities';
 import { Usermanagement } from '../usermanagement/entities/usermanagement.entities';
+import { Specialization } from '../specializations/entities/specialization.entity';
 import * as bcrypt from 'bcrypt';
 import { UpdateTeacherDto } from './dtos/updateteacher.dto';
 @Injectable()
@@ -31,6 +32,7 @@ export class TeachersService {
       xii_certificate?: Express.Multer.File;
       bachlor_certificate?: Express.Multer.File;
       master_certificate?: Express.Multer.File;
+      phD?: Express.Multer.File;
     },
   ) {
     return this.dataSource.transaction(async (manager) => {
@@ -43,17 +45,27 @@ export class TeachersService {
         );
         profileUrl = uploaded.secure_url;
       }
+
+      const specializations = await manager.find(Specialization, {
+        where: teacherDto.specializationNames.map((name) => ({ name })),
+      });
+
+      if (specializations.length !== teacherDto.specializationNames.length) {
+        throw new BadRequestException('One or more specializations not found');
+      }
+
       const teacherEntity = manager.create(Teacher, {
         name: teacherDto.name,
         email: teacherDto.email,
         password: hashPassword,
+        gender: teacherDto.gender,
         phone: teacherDto.phone,
         qualification: teacherDto.qualification,
         experience: teacherDto.experience,
         status: teacherDto.status,
         createdBy: { id: adminId } as any,
         profile: profileUrl,
-        specialization: teacherDto.specialization,
+        specializations: specializations,
       });
       const savedTeacher = await manager.save(teacherEntity);
 
@@ -63,6 +75,7 @@ export class TeachersService {
         'xii_certificate',
         'bachlor_certificate',
         'master_certificate',
+        'phD',
       ]) {
         if (files[key]?.[0]) {
           const uploaded = await this.cloudinaryService.uploadImage(
@@ -90,12 +103,12 @@ export class TeachersService {
 
       await manager.save(usermanagement);
 
-      const teacherWithCertificates = await manager.findOne(Teacher, {
+      const teacherWithRelations = await manager.findOne(Teacher, {
         where: { id: savedTeacher.id },
-        relations: ['certificates'],
+        relations: ['certificates', 'specializations'],
       });
 
-      return teacherWithCertificates;
+      return teacherWithRelations;
     });
   }
 
@@ -225,13 +238,14 @@ export class TeachersService {
   async findall(search: string): Promise<Teacher[]> {
     const teachers = await this.dataSource
       .getRepository(Teacher)
-      .find({ relations: ['certificates'] });
+      .find({ relations: ['certificates', 'specializations'] });
 
     if (search) {
       const teacherWithCertificate = await this.dataSource
         .getRepository(Teacher)
         .createQueryBuilder('teacher')
         .leftJoinAndSelect('teacher.certificates', 'certificate')
+        .leftJoinAndSelect('teacher.specializations', 'specialization')
         .where('teacher.name ILIKE :search', { search: `%${search}%` })
         .orWhere('teacher.email ILIKE :search', { search: `%${search}%` })
         .getMany();
@@ -244,7 +258,7 @@ export class TeachersService {
   async findOne(id: string): Promise<Teacher | null> {
     return await this.dataSource.getRepository(Teacher).findOne({
       where: { id },
-      relations: ['certificates'],
+      relations: ['certificates', 'specializations'],
     });
   }
 
