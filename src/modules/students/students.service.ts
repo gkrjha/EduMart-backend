@@ -139,8 +139,7 @@ export class StudentsService {
           userManagement.email = updateStudentDto.email;
         if (updateStudentDto.password)
           userManagement.password = student.password;
-        if (updateStudentDto.status)
-          userManagement.status = updateStudentDto.status;
+  
 
         await manager.save(userManagement);
       }

@@ -17,9 +17,14 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: true, // Development ke liye - production mein specific origins use karein
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
+    origin: ['*'],
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Accept',
+      'Authorization',
+      'X-Requested-With',
+    ],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,

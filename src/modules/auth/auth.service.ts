@@ -20,7 +20,7 @@ export class AuthService {
     const userRepository = this.dataSourse.getRepository(Usermanagement);
     const isUserExist = await userRepository.findOne({
       where: { email: email },
-      select: ['id', 'name', 'email', 'password', 'role', 'refId', 'status'],
+      select: ['id', 'name', 'email', 'password', 'role', 'refId',],
     });
 
     if (!isUserExist) {
@@ -36,9 +36,6 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (isUserExist.status !== 'active') {
-      throw new UnauthorizedException('User account is not active');
-    }
 
     const accessToken = this.jwtService.sign({
       id: isUserExist.refId,

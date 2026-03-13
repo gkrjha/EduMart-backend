@@ -16,6 +16,8 @@ import { JwtStrategy } from './common/jwt/jwt.strategy';
 import { MailModule } from './mail/mail.module';
 import { SpecializationsModule } from './modules/specializations/specializations.module';
 import { BatchModule } from './modules/batch/batch.module';
+import { ContentModule } from './modules/content/content.module';
+import { RatingModule } from './modules/rating/rating.module';
 import { Certificate } from './modules/teachers/entities/certificate.entity';
 import { Teacher } from './modules/teachers/entities/teacher.entity';
 import { Admin } from './modules/admins/entities/admin.entities';
@@ -36,6 +38,8 @@ import { Admin } from './modules/admins/entities/admin.entities';
     MailModule,
     SpecializationsModule,
     BatchModule,
+    ContentModule,
+    RatingModule,
   ],
   controllers: [AppController, StudentsController],
   providers: [AppService, JwtStrategy],
