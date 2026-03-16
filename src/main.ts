@@ -3,12 +3,20 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import * as express from 'express';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { rawBody: true });
   const configService = app.get(ConfigService);
   const port = process.env.PORT || 3000;
   const apiPrefix = configService.get<string>('API_PREFIX', 'api/v1');
+
+  // Stripe webhook needs raw body for signature verification
+  app.use(
+    `/${apiPrefix}/course-purchases/webhook/stripe`,
+    express.raw({ type: 'application/json' }),
+  );
+
   app.setGlobalPrefix(apiPrefix);
   app.useGlobalPipes(
     new ValidationPipe({

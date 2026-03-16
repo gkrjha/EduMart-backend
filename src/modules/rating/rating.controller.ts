@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +20,10 @@ import {
 import { RatingService } from './rating.service';
 import { CreateRatingDto } from './dto/create-rating.dto';
 import { UpdateRatingDto } from './dto/update-rating.dto';
+import { JwtAuthGuard } from 'src/common/jwt/jwt-auth.guard';
+import { RolesGuard } from 'src/common/jwt/roles.guard';
+import { Roles } from 'src/common/jwt/roles.decorator';
+import { Role } from 'src/common/enums/enum';
 
 @ApiTags('Rating')
 @Controller('rating')
@@ -26,11 +32,17 @@ export class RatingController {
   constructor(private readonly ratingService: RatingService) {}
 
   @Post()
-  // @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Create or update rating' })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.STUDENT)
+  @ApiOperation({ summary: 'Create or update rating (students only)' })
   @ApiResponse({ status: 201, description: 'Rating created successfully' })
-  create(@Body() createRatingDto: CreateRatingDto) {
-    return this.ratingService.create(createRatingDto);
+  @ApiResponse({ status: 403, description: 'Only students can rate a course' })
+  create(
+    @Body() createRatingDto: CreateRatingDto,
+    @Req() req: { user: { id: string } },
+  ) {
+    return this.ratingService.create(createRatingDto, req.user.id);
   }
 
   @Get()

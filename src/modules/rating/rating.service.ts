@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Rating } from './entities/rating.entity';
@@ -19,11 +15,10 @@ export class RatingService {
     private readonly courseRepository: Repository<Course>,
   ) {}
 
-  async create(createRatingDto: CreateRatingDto): Promise<Rating> {
-    if (createRatingDto.rating < 1 || createRatingDto.rating > 5) {
-      throw new BadRequestException('Rating must be between 1 and 5');
-    }
-
+  async create(
+    createRatingDto: CreateRatingDto,
+    studentId: string,
+  ): Promise<Rating> {
     const course = await this.courseRepository.findOne({
       where: { id: createRatingDto.course_id },
     });
@@ -34,22 +29,23 @@ export class RatingService {
       );
     }
 
+    // Upsert: update existing rating if student already rated this course
     const existing = await this.ratingRepository.findOne({
-      where: {
-        student_id: createRatingDto.student_id,
-        course_id: createRatingDto.course_id,
-      },
+      where: { student_id: studentId, course_id: createRatingDto.course_id },
     });
 
-    let rating: Rating;
     if (existing) {
       existing.rating = createRatingDto.rating;
-      rating = await this.ratingRepository.save(existing);
-    } else {
-      const newRating = this.ratingRepository.create(createRatingDto);
-      rating = await this.ratingRepository.save(newRating);
+      const updated = await this.ratingRepository.save(existing);
+      await this.updateCourseAverageRating(createRatingDto.course_id);
+      return updated;
     }
 
+    const newRating = this.ratingRepository.create({
+      ...createRatingDto,
+      student_id: studentId,
+    });
+    const rating = await this.ratingRepository.save(newRating);
     await this.updateCourseAverageRating(createRatingDto.course_id);
     return rating;
   }
@@ -92,20 +88,16 @@ export class RatingService {
       .select('AVG(rating.rating)', 'average')
       .addSelect('COUNT(rating.id)', 'count')
       .where('rating.course_id = :courseId', { courseId })
-      .getRawOne();
+      .getRawOne<{ average: string; count: string }>();
 
     return {
-      average: parseFloat(result?.average || '0'),
-      count: parseInt(result?.count || '0'),
+      average: parseFloat(result?.average ?? '0'),
+      count: parseInt(result?.count ?? '0'),
     };
   }
 
   async update(id: string, updateRatingDto: UpdateRatingDto): Promise<Rating> {
     const rating = await this.findOne(id);
-
-    if (updateRatingDto.rating < 1 || updateRatingDto.rating > 5) {
-      throw new BadRequestException('Rating must be between 1 and 5');
-    }
 
     rating.rating = updateRatingDto.rating;
     const updatedRating = await this.ratingRepository.save(rating);
@@ -130,9 +122,9 @@ export class RatingService {
       .createQueryBuilder('rating')
       .select('AVG(rating.rating)', 'average')
       .where('rating.course_id = :courseId', { courseId })
-      .getRawOne();
+      .getRawOne<{ average: string }>();
 
-    const averageRating = parseFloat(result?.average || '0');
+    const averageRating = parseFloat(result?.average ?? '0');
 
     await this.courseRepository.update(courseId, {
       avg_rating: averageRating.toFixed(2),
