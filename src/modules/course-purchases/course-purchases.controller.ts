@@ -10,7 +10,12 @@ import {
 } from '@nestjs/common';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CoursePurchasesService } from './course-purchases.service';
 import { CreateCoursePurchaseDto } from './dto/create-course-purchase.dto';
 import { VerifyRazorpayDto } from './dto/verify-razorpay.dto';
@@ -22,16 +27,20 @@ import { Role } from 'src/common/enums/enum';
 @ApiTags('Course Purchases')
 @Controller('course-purchases')
 export class CoursePurchasesController {
-  constructor(private readonly coursePurchasesService: CoursePurchasesService) {}
+  constructor(
+    private readonly coursePurchasesService: CoursePurchasesService,
+  ) {}
 
-  // ─── Stripe Webhook (no auth, raw body) ───────────────────────────────────
   @Post('webhook/stripe')
   @ApiOperation({ summary: 'Stripe webhook endpoint (raw body required)' })
   async stripeWebhook(
     @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') signature: string,
   ) {
-    await this.coursePurchasesService.handleStripeWebhook(req.rawBody!, signature);
+    await this.coursePurchasesService.handleStripeWebhook(
+      req.rawBody!,
+      signature,
+    );
     return { received: true };
   }
 
@@ -40,7 +49,10 @@ export class CoursePurchasesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post()
   @Roles(Role.STUDENT)
-  @ApiOperation({ summary: 'Initiate course purchase — returns Stripe client_secret or Razorpay order' })
+  @ApiOperation({
+    summary:
+      'Initiate course purchase — returns Stripe client_secret or Razorpay order',
+  })
   @ApiResponse({ status: 201, description: 'Payment initiated' })
   @ApiResponse({ status: 409, description: 'Course already purchased' })
   initiate(
@@ -54,14 +66,19 @@ export class CoursePurchasesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('confirm/stripe')
   @Roles(Role.STUDENT)
-  @ApiOperation({ summary: 'Manually confirm Stripe payment (use when no webhook is configured)' })
+  @ApiOperation({
+    summary:
+      'Manually confirm Stripe payment (use when no webhook is configured)',
+  })
   confirmStripe(
     @Body('payment_intent_id') paymentIntentId: string,
     @Req() req: { user: { id: string } },
   ) {
-    return this.coursePurchasesService.confirmStripePayment(paymentIntentId, req.user.id);
+    return this.coursePurchasesService.confirmStripePayment(
+      paymentIntentId,
+      req.user.id,
+    );
   }
-
 
   @Roles(Role.STUDENT)
   @ApiOperation({ summary: 'Verify Razorpay payment and activate purchase' })

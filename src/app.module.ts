@@ -21,7 +21,6 @@ import { RatingModule } from './modules/rating/rating.module';
 import { Certificate } from './modules/teachers/entities/certificate.entity';
 import { Teacher } from './modules/teachers/entities/teacher.entity';
 import { Admin } from './modules/admins/entities/admin.entities';
-import { CoursePurchasesModule } from './modules/course-purchases/course-purchases.module';
 
 @Module({
   imports: [
@@ -41,7 +40,6 @@ import { CoursePurchasesModule } from './modules/course-purchases/course-purchas
     BatchModule,
     ContentModule,
     RatingModule,
-    CoursePurchasesModule,
   ],
   controllers: [AppController, StudentsController],
   providers: [AppService, JwtStrategy],
