@@ -11,6 +11,8 @@ import {
   IsUrl,
   IsUUID,
 } from 'class-validator';
+import { Teacher } from 'src/modules/teachers/entities/teacher.entity';
+import { OneToMany } from 'typeorm';
 
 export class CreateAdminDto {
   @ApiProperty({
@@ -46,7 +48,6 @@ export class CreateAdminDto {
     required: true,
   })
   @IsString()
-  @IsOptional()
   role?: string;
 
   @ApiProperty({
@@ -75,4 +76,7 @@ export class CreateAdminDto {
   @IsBoolean()
   @Transform(({ value }) => value === 'true')
   isSasS: boolean;
+
+  @OneToMany(() => Teacher, (teacher) => teacher.createdBy)
+  teachers: Teacher[];
 }

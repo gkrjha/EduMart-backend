@@ -23,6 +23,4 @@ export class Usermanagement {
   @Column({ nullable: true })
   refId: string;
 
-  @Column({ nullable: true })
-  status: string;
 }

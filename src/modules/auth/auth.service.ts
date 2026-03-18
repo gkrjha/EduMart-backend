@@ -9,7 +9,6 @@ import { DataSource } from 'typeorm';
 import { Usermanagement } from '../usermanagement/entities/usermanagement.entities';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
-import { stat } from 'fs';
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,13 +17,18 @@ export class AuthService {
   ) {}
   async login(createAuthDto: CreateAuthDto) {
     const { email, password } = createAuthDto;
-    const userRepository = await this.dataSourse.getRepository(Usermanagement);
+    const userRepository = this.dataSourse.getRepository(Usermanagement);
     const isUserExist = await userRepository.findOne({
       where: { email: email },
+      select: ['id', 'name', 'email', 'password', 'role', 'refId',],
     });
 
     if (!isUserExist) {
       throw new BadRequestException('User not found');
+    }
+
+    if (!password || !isUserExist.password) {
+      throw new BadRequestException('Invalid credentials');
     }
 
     const passwordMatch = await bcrypt.compare(password, isUserExist.password);
@@ -32,33 +36,52 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (isUserExist.status !== 'active') {
-      throw new UnauthorizedException('User account is not active');
-    }
+
+    const accessToken = this.jwtService.sign({
+      id: isUserExist.refId,
+      email: isUserExist.email,
+      role: isUserExist.role,
+    });
+
     switch (isUserExist.role) {
-      case 'admin':
-        const adminRepository = await this.dataSourse.getRepository('Admin');
+      case 'admin': {
+        const adminRepository = this.dataSourse.getRepository('Admin');
         const admin = await adminRepository.findOne({
           where: { email: email },
         });
         return {
           message: 'Login Successful',
-          admin: admin,
-          access_token: this.jwtService.sign({
-            id: isUserExist.refId,
-            email: isUserExist.email,
-            role: isUserExist.role,
-          }),
+          user: admin,
+          role: 'admin',
+          access_token: accessToken,
         };
-        break;
-      case 'student':
-        console.log('Student logged in');
-        break;
-      case 'teacher':
-        console.log('Teacher logged in');
-        break;
+      }
+      case 'student': {
+        const studentRepository = this.dataSourse.getRepository('Student');
+        const student = await studentRepository.findOne({
+          where: { email: email },
+        });
+        return {
+          message: 'Login Successful',
+          user: student,
+          role: 'student',
+          access_token: accessToken,
+        };
+      }
+      case 'teacher': {
+        const teacherRepository = this.dataSourse.getRepository('Teacher');
+        const teacher = await teacherRepository.findOne({
+          where: { email: email },
+        });
+        return {
+          message: 'Login Successful',
+          user: teacher,
+          role: 'teacher',
+          access_token: accessToken,
+        };
+      }
       default:
-        console.log('Unknown role');
+        throw new BadRequestException('Unknown role');
     }
   }
 

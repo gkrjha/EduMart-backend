@@ -6,6 +6,7 @@ import { Admin } from './entities/admin.entities';
 import { UsermanagementModule } from '../usermanagement/usermanagement.module';
 import { CloudinaryModule } from 'src/common/cloudinary/cloudinary.module';
 import { AuthModule } from '../auth/auth.module';
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AuthModule } from '../auth/auth.module';
     UsermanagementModule,
     CloudinaryModule,
     AuthModule,
+    MailModule,
   ],
   controllers: [AdminsController],
   providers: [AdminsService],

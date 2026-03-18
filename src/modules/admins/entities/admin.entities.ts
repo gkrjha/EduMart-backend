@@ -1,10 +1,13 @@
 import { IsOptional } from 'class-validator';
 import { UUID } from 'crypto';
+import { Teacher } from 'src/modules/teachers/entities/teacher.entity';
+import { Role, UserStatus } from 'src/common/enums/enum';
 import {
   Column,
   Entity,
   ManyToOne,
   OneToMany,
+  OneToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -19,14 +22,14 @@ export class Admin {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  role?: string;
+  @Column({ type: 'enum', enum: Role, nullable: true })
+  role?: Role;
 
   @Column()
   phone: string;
 
-  @Column()
-  status: string;
+  @Column({ type: 'enum', enum: UserStatus, default: UserStatus.ACTIVE })
+  status: UserStatus;
 
   @ManyToOne(() => Admin, (admin) => admin.subAdmins, {
     nullable: true,
@@ -43,4 +46,7 @@ export class Admin {
   @Column({ default: true })
   @IsOptional()
   isSasS: boolean;
+
+  @OneToMany(() => Teacher, (teacher) => teacher.createdBy)
+  teachers: Teacher[];
 }

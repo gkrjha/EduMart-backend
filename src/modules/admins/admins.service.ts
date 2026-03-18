@@ -7,6 +7,8 @@ import { Usermanagement } from '../usermanagement/entities/usermanagement.entiti
 import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
 import { UpdateAdminDto } from './dto/updateadmin.dto';
 import { InjectRepository } from '@nestjs/typeorm';
+import { MailService } from 'src/mail/mail.service';
+import { Role, UserStatus } from 'src/common/enums/enum';
 @Injectable()
 export class AdminsService {
   constructor(
@@ -48,6 +50,8 @@ export class AdminsService {
       // const admin = this.adminRepository.create(createAdminDto);
       const admin = queryRunner.manager.create(Admin, {
         ...createAdminDto,
+        status: UserStatus.ACTIVE,
+        role: Role.ADMIN,
         createdBy: { id: clientId } as Admin,
         profile: profileUrl,
       });
@@ -68,9 +72,9 @@ export class AdminsService {
         name: admin.name,
         email: admin.email,
         password: hashPassword,
-        role: admin.role,
         refId: admin.id,
         status: admin.status,
+        role: Role.ADMIN,
       });
 
       await queryRunner.commitTransaction();
@@ -155,15 +159,24 @@ export class AdminsService {
       .createQueryBuilder('admin')
       .where('admin.id = :id', { id })
       .loadRelationCountAndMap('admin.subAdminCount', 'admin.subAdmins')
+      .leftJoinAndSelect('admin.subAdmins', 'subAdmin')
+      .loadRelationCountAndMap('admin.teacherCount', 'admin.teachers')
+      .leftJoinAndSelect('admin.teachers', 'teacher')
       .getOne();
   }
 
-  async findAll(search?: string | null): Promise<Admin[]> {
+  async findAll(
+    search?: string | null,
+    loginAdminId?: string,
+  ): Promise<Admin[]> {
     const admin = await this.adminRepository
       .createQueryBuilder('admin')
       .select()
+      .where('admin.id != :loginAdminId', { loginAdminId })
       .loadRelationCountAndMap('admin.subAdminCount', 'admin.subAdmins')
-      .leftJoinAndSelect('admin.subAdmins', 'subAdmin');
+      .leftJoinAndSelect('admin.subAdmins', 'subAdmin')
+      .loadRelationCountAndMap('admin.teacherCount', 'admin.teachers')
+      .leftJoinAndSelect('admin.teachers', 'teacher');
 
     if (search) {
       admin.where('admin.name ILIKE :search OR admin.email ILIKE :search', {

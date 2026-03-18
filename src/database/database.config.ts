@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmOptionsFactory, TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { Admin } from 'src/modules/admins/entities/admin.entities';
+import { Certificate } from 'src/modules/teachers/entities/certificate.entity';
+import { Teacher } from 'src/modules/teachers/entities/teacher.entity';
+import { Specialization } from 'src/modules/specializations/entities/specialization.entity';
+import { Batch } from 'src/modules/batch/entities/batch.entity';
+import { Student } from 'src/modules/students/entities/student.entity';
+import { Course } from 'src/modules/courses/entities/course.entities';
 
 @Injectable()
 export class DatabaseConfigService implements TypeOrmOptionsFactory {
@@ -14,8 +21,15 @@ export class DatabaseConfigService implements TypeOrmOptionsFactory {
       password: this.configService.get<string>('DATABASE_PASSWORD'),
       database: this.configService.get<string>('DATABASE_NAME'),
       synchronize: true,
-      //logging: this.configService.get<string>('NODE_ENV') === 'development',
-    //   logging: false,
+      entities: [
+        Admin,
+        Teacher,
+        Certificate,
+        Specialization,
+        Batch,
+        Student,
+        Course,
+      ],
       migrationsRun: false,
       autoLoadEntities: true,
     };
