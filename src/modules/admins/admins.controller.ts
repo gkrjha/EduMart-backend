@@ -64,7 +64,6 @@ export class AdminsController {
     @UploadedFile() profile?: Express.Multer.File,
   ): Promise<Admin> {
     const clientId = req.user.id;
-    console.log(clientId);
     return this.adminService.create(createAdminDto, clientId, profile);
   }
 

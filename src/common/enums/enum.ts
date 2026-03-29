@@ -16,8 +16,8 @@ export enum Gender {
 }
 
 export enum Qualification {
-  BACHELOR = "Bachelor's",
-  MASTER = "Master's",
+  BACHELOR = 'Bachelor',
+  MASTER = 'Master',
   PHD = 'PhD',
 }
 

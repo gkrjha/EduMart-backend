@@ -7,8 +7,8 @@ import { Usermanagement } from '../usermanagement/entities/usermanagement.entiti
 import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
 import { UpdateAdminDto } from './dto/updateadmin.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MailService } from 'src/mail/mail.service';
 import { Role, UserStatus } from 'src/common/enums/enum';
+
 @Injectable()
 export class AdminsService {
   constructor(
@@ -23,8 +23,6 @@ export class AdminsService {
     clientId: string,
     profile?: Express.Multer.File,
   ): Promise<Admin> {
-    console.log(clientId);
-
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -33,21 +31,13 @@ export class AdminsService {
       let profileUrl: string | undefined;
 
       if (profile?.buffer) {
-        const uploaded = await this.cloudinaryService.uploadImage(
-          profile,
-          'admins',
-        );
-
+        const uploaded = await this.cloudinaryService.uploadImage(profile, 'admins');
         if ('error' in uploaded) {
-          throw new BadRequestException(
-            uploaded.error?.message || 'Profile upload failed',
-          );
+          throw new BadRequestException(uploaded.error?.message || 'Profile upload failed');
         }
-
         profileUrl = uploaded.secure_url;
       }
 
-      // const admin = this.adminRepository.create(createAdminDto);
       const admin = queryRunner.manager.create(Admin, {
         ...createAdminDto,
         status: UserStatus.ACTIVE,
@@ -57,16 +47,6 @@ export class AdminsService {
       });
 
       await queryRunner.manager.save(admin);
-
-      // const savedAdmin = await this.adminRepository.save(admin);
-      // await this.userService.create({
-      //   name: data.name,
-      //   email: data.email,
-      //   password: hashPassword,
-      //   role: data.role,
-      //   refId: data.refId,
-      //   status: data.status,
-      // });
 
       await queryRunner.manager.save(Usermanagement, {
         name: admin.name,
@@ -95,42 +75,28 @@ export class AdminsService {
     let updateAdmin: Admin | undefined;
     try {
       await this.dataSource.transaction(async (manager) => {
-        const admin = await manager.findOne(Admin, {
-          where: { id },
-        });
+        const admin = await manager.findOne(Admin, { where: { id } });
 
         if (!admin) {
           throw new BadRequestException('Admin not found');
         }
+
         let profileUrl = admin.profile;
-
         if (profile?.buffer) {
-          const uploaded = await this.cloudinaryService.uploadImage(
-            profile,
-            'admins',
-          );
-
+          const uploaded = await this.cloudinaryService.uploadImage(profile, 'admins');
           if ('error' in uploaded) {
-            throw new BadRequestException(
-              uploaded.error?.message || 'Profile upload failed',
-            );
+            throw new BadRequestException(uploaded.error?.message || 'Profile upload failed');
           }
-
           profileUrl = uploaded.secure_url;
         }
 
-        Object.assign(admin, updateAdminDto, {
-          profile: profileUrl,
-        });
-
+        Object.assign(admin, updateAdminDto, { profile: profileUrl });
         updateAdmin = await manager.save(Admin, admin);
 
         await manager.update(
           Usermanagement,
           { refId: admin.id },
-          {
-            name: updateAdminDto.name ?? admin.name,
-          },
+          { name: updateAdminDto.name ?? admin.name },
         );
       });
       return updateAdmin!;
@@ -141,17 +107,13 @@ export class AdminsService {
 
   async delete(id: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      const admin = await manager.findOne(Admin, {
-        where: { id },
-      });
+      const admin = await manager.findOne(Admin, { where: { id } });
       if (!admin) {
         throw new BadRequestException('Admin not found');
       }
       await manager.delete(Admin, { id });
-
       await manager.delete(Usermanagement, { refId: admin.id });
     });
-    return;
   }
 
   async findOne(id: string): Promise<Admin | null> {
@@ -165,13 +127,9 @@ export class AdminsService {
       .getOne();
   }
 
-  async findAll(
-    search?: string | null,
-    loginAdminId?: string,
-  ): Promise<Admin[]> {
-    const admin = await this.adminRepository
+  async findAll(search?: string | null, loginAdminId?: string): Promise<Admin[]> {
+    const query = this.adminRepository
       .createQueryBuilder('admin')
-      .select()
       .where('admin.id != :loginAdminId', { loginAdminId })
       .loadRelationCountAndMap('admin.subAdminCount', 'admin.subAdmins')
       .leftJoinAndSelect('admin.subAdmins', 'subAdmin')
@@ -179,11 +137,11 @@ export class AdminsService {
       .leftJoinAndSelect('admin.teachers', 'teacher');
 
     if (search) {
-      admin.where('admin.name ILIKE :search OR admin.email ILIKE :search', {
+      query.andWhere('admin.name ILIKE :search OR admin.email ILIKE :search', {
         search: `%${search}%`,
       });
     }
 
-    return admin.getMany();
+    return query.getMany();
   }
 }

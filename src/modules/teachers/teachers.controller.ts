@@ -7,8 +7,8 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   Req,
-  SetMetadata,
   UnauthorizedException,
   UploadedFiles,
   UseGuards,
@@ -21,19 +21,16 @@ import {
   ApiParam,
   ApiQuery,
   ApiTags,
-  getSchemaPath,
 } from '@nestjs/swagger';
 import { TeacherDTO } from './dtos/teacher.dto';
 import { JwtAuthGuard } from 'src/common/jwt/jwt-auth.guard';
 import { Teacher } from './entities/teacher.entity';
 import {
   FileFieldsInterceptor,
-  FileInterceptor,
 } from '@nestjs/platform-express';
 import { TeachersService } from './teachers.service';
 import { UpdateTeacherDto } from './dtos/updateteacher.dto';
 import { memoryStorage } from 'multer';
-import { Role } from 'src/common/enums/enum';
 
 @ApiTags('Teachers')
 @Controller('teachers')
@@ -110,9 +107,8 @@ export class TeachersController {
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  async findAll(@Req() req): Promise<Teacher[]> {
-    const search = req.query.search as string;
-    return this.teacherService.findall(search);
+  async findAll(@Query('search') search?: string): Promise<Teacher[]> {
+    return this.teacherService.findall(search ?? '');
   }
 
   @Get('find-one/:id')
@@ -123,7 +119,6 @@ export class TeachersController {
     return this.teacherService.findOne(id);
   }
 
-  @SetMetadata('roles', [Role.ADMIN, Role.TEACHER])
   @Delete('delete/:id')
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', required: true })
   @ApiBearerAuth('access-token')
