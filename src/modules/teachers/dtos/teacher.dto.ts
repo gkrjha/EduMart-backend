@@ -54,19 +54,9 @@ export class TeacherDTO {
   bachlor_certificate: any;
 
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
-  @ValidateIf(
-    (o) =>
-      o.qualification === Qualification.MASTER ||
-      o.qualification === Qualification.PHD,
-  )
-  @IsNotEmpty({
-    message: 'Master certificate is required for Master qualification',
-  })
   master_certificate?: any;
 
   @ApiPropertyOptional({ type: 'string', format: 'binary' })
-  @ValidateIf((o) => o.qualification === Qualification.PHD)
-  @IsNotEmpty({ message: 'PhD certificate is required for PhD qualification' })
   phD?: any;
 
   @ApiProperty({

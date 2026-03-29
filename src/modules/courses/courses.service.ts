@@ -13,9 +13,9 @@ export class CoursesService {
     private readonly courseRepository: Repository<Course>,
     @InjectRepository(Specialization)
     private readonly specializationRepository: Repository<Specialization>,
-  ) {}
+  ) { }
 
-  async create(courseDto: CreateCourseDto): Promise<Course> {
+  async create(courseDto: CreateCourseDto, teacherId?: string): Promise<Course> {
     const { specializationNames, ...courseData } = courseDto;
 
     let specializations: Specialization[] = [];
@@ -37,6 +37,7 @@ export class CoursesService {
 
     const course = this.courseRepository.create({
       ...courseData,
+      teacher_id: teacherId ?? null,
       specializations,
     });
 
@@ -149,5 +150,12 @@ export class CoursesService {
     const course = await this.findOne(id);
     await this.courseRepository.remove(course);
     return { message: 'Course deleted successfully' };
+  }
+
+  async findByTeacher(teacherId: string): Promise<Course[]> {
+    return this.courseRepository.find({
+      where: { teacher_id: teacherId },
+      relations: ['specializations'],
+    });
   }
 }

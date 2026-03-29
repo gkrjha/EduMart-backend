@@ -19,89 +19,79 @@ import {
   ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/common/jwt/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/enums/enum';
+import { CoursesService } from './courses.service';
 import { CreateCourseDto } from './dtos/create-course.dto';
 import { UpdateCourseDto } from './dtos/update-course.dto';
-import { CoursesService } from './courses.service';
+import { User } from 'src/common/decorators/get-user.decorator';
+import type { AuthUser } from 'src/common/types/auth-user.type';
 
 @Controller('courses')
 @ApiTags('courses')
-@ApiBearerAuth()
 export class CoursesController {
-  constructor(private readonly courseServices: CoursesService) {}
+  constructor(private readonly courseServices: CoursesService) { }
 
   @Post('create-course')
-  // @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.TEACHER)
   @ApiOperation({ summary: 'Create a new course' })
   @ApiResponse({ status: 201, description: 'Course created successfully' })
-  @ApiResponse({ status: 404, description: 'Specializations not found' })
-  async create(@Body() dto: CreateCourseDto) {
-    return this.courseServices.create(dto);
+  async create(@Body() dto: CreateCourseDto, @User() user: AuthUser) {
+    // Teacher ne create kiya toh uska id store karo, admin ne kiya toh null
+    const teacherId = user.role === Role.TEACHER ? user.id : undefined;
+    return this.courseServices.create(dto, teacherId);
   }
 
+  @Get('my-courses')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.TEACHER)
+  @ApiOperation({ summary: 'Get courses created by logged-in teacher' })
+  async getMyCourses(@User() user: AuthUser) {
+    return this.courseServices.findByTeacher(user.id);
+  }
+
+  // Public — koi bhi courses dekh sakta hai
   @Get()
   @ApiOperation({ summary: 'Get all courses' })
-  @ApiResponse({ status: 200, description: 'List of all courses' })
-  @ApiQuery({
-    name: 'search',
-    required: false,
-    description: 'Search by course title or description',
-    type: String,
-  })
-  @ApiQuery({
-    name: 'specialization',
-    required: false,
-    description: 'Filter by specialization name',
-    type: String,
-  })
-  @ApiQuery({
-    name: 'minPrice',
-    required: false,
-    description: 'Minimum price filter',
-    type: Number,
-  })
-  @ApiQuery({
-    name: 'maxPrice',
-    required: false,
-    description: 'Maximum price filter',
-    type: Number,
-  })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'specialization', required: false, type: String })
+  @ApiQuery({ name: 'minPrice', required: false, type: Number })
+  @ApiQuery({ name: 'maxPrice', required: false, type: Number })
   async findAll(
     @Query('search') search?: string,
     @Query('specialization') specialization?: string,
     @Query('minPrice') minPrice?: number,
     @Query('maxPrice') maxPrice?: number,
   ) {
-    return this.courseServices.findAll(
-      search,
-      specialization,
-      minPrice,
-      maxPrice,
-    );
+    return this.courseServices.findAll(search, specialization, minPrice, maxPrice);
   }
 
+  // Public — single course detail
   @Get(':id')
   @ApiOperation({ summary: 'Get a course by ID' })
-  @ApiResponse({ status: 200, description: 'Course found' })
-  @ApiResponse({ status: 404, description: 'Course not found' })
   async findOne(@Param('id') id: string) {
     return this.courseServices.findOne(id);
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.TEACHER)
   @ApiOperation({ summary: 'Update a course' })
-  @ApiResponse({ status: 200, description: 'Course updated successfully' })
-  @ApiResponse({ status: 404, description: 'Course not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateCourseDto) {
     return this.courseServices.update(id, dto);
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Delete a course' })
-  @ApiResponse({ status: 200, description: 'Course deleted successfully' })
-  @ApiResponse({ status: 404, description: 'Course not found' })
   async remove(@Param('id') id: string) {
     return this.courseServices.remove(id);
   }

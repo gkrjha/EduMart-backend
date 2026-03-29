@@ -13,7 +13,7 @@ export class RatingService {
     private readonly ratingRepository: Repository<Rating>,
     @InjectRepository(Course)
     private readonly courseRepository: Repository<Course>,
-  ) {}
+  ) { }
 
   async create(
     createRatingDto: CreateRatingDto,
@@ -36,14 +36,17 @@ export class RatingService {
 
     if (existing) {
       existing.rating = createRatingDto.rating;
+      if (createRatingDto.message !== undefined) existing.message = createRatingDto.message ?? null;
       const updated = await this.ratingRepository.save(existing);
       await this.updateCourseAverageRating(createRatingDto.course_id);
       return updated;
     }
 
     const newRating = this.ratingRepository.create({
-      ...createRatingDto,
+      rating: createRatingDto.rating,
+      message: createRatingDto.message ?? null,
       student_id: studentId,
+      course_id: createRatingDto.course_id,
     });
     const rating = await this.ratingRepository.save(newRating);
     await this.updateCourseAverageRating(createRatingDto.course_id);

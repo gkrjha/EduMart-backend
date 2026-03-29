@@ -8,12 +8,13 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UnauthorizedException,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { User } from 'src/common/decorators/get-user.decorator';
+import type { AuthUser } from 'src/common/types/auth-user.type';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -24,19 +25,24 @@ import {
 } from '@nestjs/swagger';
 import { TeacherDTO } from './dtos/teacher.dto';
 import { JwtAuthGuard } from 'src/common/jwt/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators/roles.decorator';
+import { Role } from 'src/common/enums/enum';
 import { Teacher } from './entities/teacher.entity';
-import {
-  FileFieldsInterceptor,
-} from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { TeachersService } from './teachers.service';
 import { UpdateTeacherDto } from './dtos/updateteacher.dto';
 import { memoryStorage } from 'multer';
 
 @ApiTags('Teachers')
 @Controller('teachers')
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard, RolesGuard)
 export class TeachersController {
-  constructor(private readonly teacherService: TeachersService) {}
+  constructor(private readonly teacherService: TeachersService) { }
+
   @Post('create-teacher')
+  @Roles(Role.ADMIN)
   @ApiBody({ type: TeacherDTO })
   @UseInterceptors(
     FileFieldsInterceptor([
@@ -49,29 +55,26 @@ export class TeachersController {
     ]),
   )
   @ApiConsumes('multipart/form-data')
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   async createTeacher(
     @Body() teacher: TeacherDTO,
-    @Req() req,
+    @User() user: AuthUser,
     @UploadedFiles()
     files: {
-      profile?: Express.Multer.File;
-      x_certificate?: Express.Multer.File;
-      xii_certificate?: Express.Multer.File;
-      bachlor_certificate?: Express.Multer.File;
-      master_certificate?: Express.Multer.File;
-      phD?: Express.Multer.File;
+      profile?: Express.Multer.File[];
+      x_certificate?: Express.Multer.File[];
+      xii_certificate?: Express.Multer.File[];
+      bachlor_certificate?: Express.Multer.File[];
+      master_certificate?: Express.Multer.File[];
+      phD?: Express.Multer.File[];
     },
   ): Promise<Teacher | null> {
-    return this.teacherService.create(teacher, req.user.id, files);
+    return this.teacherService.create(teacher, user.id, files as any);
   }
 
   @Patch('update/:id')
+  @Roles(Role.TEACHER)
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', required: true })
   @ApiConsumes('multipart/form-data')
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     FileFieldsInterceptor(
       [
@@ -87,15 +90,14 @@ export class TeachersController {
   async updateTeacher(
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() teacherDto: UpdateTeacherDto,
-    @Req() req,
+    @User() user: AuthUser,
     @UploadedFiles()
     files: {
       profile?: Express.Multer.File[];
       master_certificate?: Express.Multer.File[];
     },
   ) {
-    const authId = req.user.id;
-    if (authId !== id) {
+    if (user.id !== id) {
       throw new UnauthorizedException('You can only update your own profile');
     }
     return this.teacherService.update(id, teacherDto, {
@@ -103,26 +105,24 @@ export class TeachersController {
       master_certificate: files?.master_certificate?.[0],
     });
   }
+
   @Get('find-all')
+  @Roles(Role.ADMIN, Role.TEACHER, Role.STUDENT)
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   async findAll(@Query('search') search?: string): Promise<Teacher[]> {
     return this.teacherService.findall(search ?? '');
   }
 
   @Get('find-one/:id')
+  @Roles(Role.ADMIN, Role.TEACHER, Role.STUDENT)
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', required: true })
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   async findOne(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.teacherService.findOne(id);
   }
 
   @Delete('delete/:id')
+  @Roles(Role.ADMIN)
   @ApiParam({ name: 'id', type: 'string', format: 'uuid', required: true })
-  @ApiBearerAuth('access-token')
-  @UseGuards(JwtAuthGuard)
   async delete(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.teacherService.delete(id);
   }

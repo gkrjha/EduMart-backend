@@ -1,9 +1,12 @@
 import { Specialization } from 'src/modules/specializations/entities/specialization.entity';
+import { Teacher } from 'src/modules/teachers/entities/teacher.entity';
 import {
   Column,
   Entity,
+  JoinColumn,
   JoinTable,
   ManyToMany,
+  ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
@@ -23,6 +26,13 @@ export class Course {
 
   @Column('decimal', { precision: 3, scale: 2, default: '0' })
   avg_rating: string;
+
+  @ManyToOne(() => Teacher, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'teacher_id' })
+  teacher: Teacher | null;
+
+  @Column({ nullable: true })
+  teacher_id: string | null;
 
   @ManyToMany(() => Specialization, { cascade: true })
   @JoinTable({
