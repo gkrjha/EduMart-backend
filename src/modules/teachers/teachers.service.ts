@@ -1,21 +1,18 @@
 import {
   BadRequestException,
-  Body,
   Injectable,
   NotFoundException,
-  Req,
-  UploadedFile,
 } from '@nestjs/common';
 import { TeacherDTO } from './dtos/teacher.dto';
-import { DataSource, In, QueryBuilder } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Certificate } from './entities/certificate.entity';
 import { Teacher } from './entities/teacher.entity';
 import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
-import { Admin } from '../admins/entities/admin.entities';
 import { Usermanagement } from '../usermanagement/entities/usermanagement.entities';
 import { Specialization } from '../specializations/entities/specialization.entity';
 import * as bcrypt from 'bcrypt';
 import { UpdateTeacherDto } from './dtos/updateteacher.dto';
+
 @Injectable()
 export class TeachersService {
   constructor(
@@ -103,145 +100,60 @@ export class TeachersService {
 
       await manager.save(usermanagement);
 
-      const teacherWithRelations = await manager.findOne(Teacher, {
+      return await manager.findOne(Teacher, {
         where: { id: savedTeacher.id },
         relations: ['certificates', 'specializations'],
       });
-
-      return teacherWithRelations;
     });
   }
 
-  // async update(
-  //   id: string,
-  //   updateTeacherDto: UpdateTeacherDto,
-  //   files: {
-  //     profile?: Express.Multer.File;
-  //     master_certificate?: Express.Multer.File;
-  //   },
-  // ): Promise<Teacher> {
-  //   return this.dataSource.transaction(async (manager) => {
-  //     const teacher = await manager.findOne(Teacher, {
-  //       where: { id },
-  //       relations: ['certificates'],
-  //     });
-
-  //     if (!teacher) {
-  //       throw new NotFoundException(`Teacher with ID ${id} not found`);
-  //     }
-  //     if (files.profile?.[0]) {
-  //       const uploaded = await this.cloudinaryService.uploadImage(
-  //         files.profile[0],
-  //         'teachers',
-  //       );
-  //       teacher.profile = uploaded.secure_url;
-  //     }
-
-  //     if (updateTeacherDto.password) {
-  //       teacher.password = await bcrypt.hash(updateTeacherDto.password, 10);
-  //     }
-
-  //     if (updateTeacherDto.name !== undefined)
-  //       teacher.name = updateTeacherDto.name;
-  //     if (updateTeacherDto.phone !== undefined)
-  //       teacher.phone = updateTeacherDto.phone;
-  //     if (updateTeacherDto.qualification !== undefined)
-  //       teacher.qualification = updateTeacherDto.qualification;
-  //     if (updateTeacherDto.experience !== undefined)
-  //       teacher.experience = updateTeacherDto.experience;
-  //     if (updateTeacherDto.status !== undefined)
-  //       teacher.status = updateTeacherDto.status;
-
-  //     const updatedTeacher = await manager.save(teacher);
-  //     if (files.master_certificate?.[0] && teacher.certificates?.[0]) {
-  //       const uploaded = await this.cloudinaryService.uploadImage(
-  //         files.master_certificate[0],
-  //         'certificates',
-  //       );
-  //       teacher.certificates[0].master_certificate = uploaded.secure_url;
-  //       await manager.save(teacher.certificates[0]);
-  //     }
-  //     const userManagement = await manager.findOne(Usermanagement, {
-  //       where: { refId: id, role: 'teacher' },
-  //     });
-
-  //     if (userManagement) {
-  //       if (updateTeacherDto.name !== undefined)
-  //         userManagement.name = updateTeacherDto.name;
-  //       if (updateTeacherDto.email !== undefined)
-  //         userManagement.email = updateTeacherDto.email;
-  //       if (updateTeacherDto.password)
-  //         userManagement.password = teacher.password;
-  //       if (updateTeacherDto.status !== undefined)
-  //         userManagement.status = updateTeacherDto.status;
-
-  //       await manager.save(userManagement);
-  //     }
-
-  //     return updatedTeacher;
-  //   });
-  // }
-
   async update(
     id: string,
-    teacherDot: UpdateTeacherDto,
+    teacherDto: UpdateTeacherDto,
     files: {
       profile?: Express.Multer.File;
       master_certificate?: Express.Multer.File;
     },
   ): Promise<Teacher> {
-    const updatedTeacher = await this.dataSource.transaction(
-      async (manager) => {
-        const teacher = await manager.findOne(Teacher, {
-          where: { id },
-          relations: ['certificates'],
-        });
+    return this.dataSource.transaction(async (manager) => {
+      const teacher = await manager.findOne(Teacher, {
+        where: { id },
+        relations: ['certificates'],
+      });
 
-        if (!teacher) {
-          throw new NotFoundException(`Teacher with ID ${id} not found`);
-        }
+      if (!teacher) {
+        throw new NotFoundException(`Teacher with ID ${id} not found`);
+      }
 
-        if (files.profile) {
-          const upload = await this.cloudinaryService.uploadImage(
-            files.profile,
-            'teachers',
-          );
-          teacher.profile = upload.secure_url;
-        }
+      if (files.profile) {
+        const upload = await this.cloudinaryService.uploadImage(files.profile, 'teachers');
+        teacher.profile = upload.secure_url;
+      }
 
-        if (files.master_certificate) {
-          const upload = await this.cloudinaryService.uploadImage(
-            files.master_certificate,
-            'certificates',
-          );
-          teacher.certificates[0].master_certificate = upload.secure_url;
-        }
-        if (teacherDot.name !== undefined) teacher.name = teacherDot.name;
-        if (teacherDot.phone !== undefined) teacher.phone = teacherDot.phone;
-        if (teacherDot.experience !== undefined)
-          teacher.experience = teacherDot.experience;
+      if (files.master_certificate) {
+        const upload = await this.cloudinaryService.uploadImage(files.master_certificate, 'certificates');
+        teacher.certificates[0].master_certificate = upload.secure_url;
+      }
 
-        const userManagement = await manager.findOne(Usermanagement, {
-          where: { refId: id, role: 'teacher' },
-        });
-        if (userManagement) {
-          if (teacherDot.name !== undefined)
-            userManagement.name = teacherDot.name;
-          await manager.save(userManagement);
-        }
-        return await manager.save(teacher);
-      },
-    );
-    return updatedTeacher;
+      if (teacherDto.name !== undefined) teacher.name = teacherDto.name;
+      if (teacherDto.phone !== undefined) teacher.phone = teacherDto.phone;
+      if (teacherDto.experience !== undefined) teacher.experience = teacherDto.experience;
+
+      const userManagement = await manager.findOne(Usermanagement, {
+        where: { refId: id, role: 'teacher' },
+      });
+      if (userManagement) {
+        if (teacherDto.name !== undefined) userManagement.name = teacherDto.name;
+        await manager.save(userManagement);
+      }
+
+      return await manager.save(teacher);
+    });
   }
 
-  async findall(search: string): Promise<Teacher[]> {
-    const teachers = await this.dataSource
-      .getRepository(Teacher)
-      .find({ relations: ['certificates', 'specializations'] });
-
+  async findall(search?: string): Promise<Teacher[]> {
     if (search) {
-      const teacherWithCertificate = await this.dataSource
+      return await this.dataSource
         .getRepository(Teacher)
         .createQueryBuilder('teacher')
         .leftJoinAndSelect('teacher.certificates', 'certificate')
@@ -249,10 +161,11 @@ export class TeachersService {
         .where('teacher.name ILIKE :search', { search: `%${search}%` })
         .orWhere('teacher.email ILIKE :search', { search: `%${search}%` })
         .getMany();
-      return teacherWithCertificate;
     }
 
-    return teachers;
+    return await this.dataSource
+      .getRepository(Teacher)
+      .find({ relations: ['certificates', 'specializations'] });
   }
 
   async findOne(id: string): Promise<Teacher | null> {
@@ -264,8 +177,8 @@ export class TeachersService {
 
   async delete(id: string): Promise<void> {
     await this.dataSource.transaction(async (manager) => {
-      const teacher = await this.dataSource.getRepository(Teacher).delete(id);
-      if (teacher.affected === 0) {
+      const result = await manager.delete(Teacher, { id });
+      if (result.affected === 0) {
         throw new NotFoundException(`Teacher with ID ${id} not found`);
       }
       await manager.delete(Usermanagement, { refId: id, role: 'teacher' });

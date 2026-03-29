@@ -4,23 +4,24 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
 import { DataSource } from 'typeorm';
 import { Usermanagement } from '../usermanagement/entities/usermanagement.entities';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
+
 @Injectable()
 export class AuthService {
   constructor(
     private readonly dataSourse: DataSource,
     private readonly jwtService: JwtService,
   ) {}
+
   async login(createAuthDto: CreateAuthDto) {
     const { email, password } = createAuthDto;
     const userRepository = this.dataSourse.getRepository(Usermanagement);
     const isUserExist = await userRepository.findOne({
-      where: { email: email },
-      select: ['id', 'name', 'email', 'password', 'role', 'refId',],
+      where: { email },
+      select: ['id', 'name', 'email', 'password', 'role', 'refId'],
     });
 
     if (!isUserExist) {
@@ -36,68 +37,32 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-
     const accessToken = this.jwtService.sign({
       id: isUserExist.refId,
       email: isUserExist.email,
       role: isUserExist.role,
     });
 
-    switch (isUserExist.role) {
-      case 'admin': {
-        const adminRepository = this.dataSourse.getRepository('Admin');
-        const admin = await adminRepository.findOne({
-          where: { email: email },
-        });
-        return {
-          message: 'Login Successful',
-          user: admin,
-          role: 'admin',
-          access_token: accessToken,
-        };
-      }
-      case 'student': {
-        const studentRepository = this.dataSourse.getRepository('Student');
-        const student = await studentRepository.findOne({
-          where: { email: email },
-        });
-        return {
-          message: 'Login Successful',
-          user: student,
-          role: 'student',
-          access_token: accessToken,
-        };
-      }
-      case 'teacher': {
-        const teacherRepository = this.dataSourse.getRepository('Teacher');
-        const teacher = await teacherRepository.findOne({
-          where: { email: email },
-        });
-        return {
-          message: 'Login Successful',
-          user: teacher,
-          role: 'teacher',
-          access_token: accessToken,
-        };
-      }
-      default:
-        throw new BadRequestException('Unknown role');
+    const entityMap: Record<string, string> = {
+      admin: 'Admin',
+      student: 'Student',
+      teacher: 'Teacher',
+    };
+
+    const entityName = entityMap[isUserExist.role];
+    if (!entityName) {
+      throw new BadRequestException('Unknown role');
     }
-  }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+    const user = await this.dataSourse
+      .getRepository(entityName)
+      .findOne({ where: { email } });
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
-
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    return {
+      message: 'Login Successful',
+      user,
+      role: isUserExist.role,
+      access_token: accessToken,
+    };
   }
 }
