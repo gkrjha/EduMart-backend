@@ -29,10 +29,10 @@ export class Teacher {
   @Column()
   phone: string;
 
-  @Column({ type: 'enum', enum: Gender })
+  @Column({ type: 'enum', enum: Gender, default: Gender.MALE })
   gender: Gender;
 
-  @Column({ type: 'enum', enum: Qualification })
+  @Column({ type: 'enum', enum: Qualification, default: Qualification.BACHELOR })
   qualification: Qualification;
 
   @Column()
