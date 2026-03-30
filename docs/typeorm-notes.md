@@ -870,3 +870,471 @@ Kab use karein: jab manually commit/rollback control karna ho, ya intermediate c
 | Error handling | Automatic rollback | Manual rollback |
 
 ---
+
+## 12. Lifecycle Hooks
+
+Lifecycle hooks allow you to run logic automatically when an entity is inserted/updated/loaded/deleted.
+
+> Common hooks: `@BeforeInsert`, `@BeforeUpdate`, `@AfterInsert`, `@AfterUpdate`, `@AfterLoad`, etc.
+
+```ts
+import { BeforeInsert, BeforeUpdate, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  name: string;
+
+  @Column()
+  updatedAtIso: string;
+
+  @BeforeInsert()
+  setCreatedDefaults() {
+    // insert ke time pe run hoga
+  }
+
+  @BeforeUpdate()
+  setUpdatedAt() {
+    this.updatedAtIso = new Date().toISOString();
+  }
+}
+```
+
+Kab use karein:
+- auditing fields (timestamps, derived fields)
+- setting default/normalizing values before DB writes
+
+---
+
+## 13. Subscribers
+
+Subscribers are global listeners for entity events (insert/update/remove/load). They are useful when logic multiple entities pe apply karni ho ya you want cross-cutting behavior.
+
+```ts
+import {
+  DataSource,
+  EntitySubscriberInterface,
+  EventSubscriber,
+  InsertEvent,
+} from 'typeorm';
+import { User } from './User.entity';
+
+@EventSubscriber()
+export class UserSubscriber implements EntitySubscriberInterface<User> {
+  listenTo() {
+    return User;
+  }
+
+  beforeInsert(event: InsertEvent<User>) {
+    // Insert se pehle run
+    // event.entity = User instance
+  }
+}
+
+// DataSource option: subscribers: [UserSubscriber]
+// ya auto-load (environment/config ke hisaab se)
+```
+
+Notes:
+- Subscribers lifecycle hooks se broader are (global event-based)
+- Registration important hai (DataSource config mein)
+
+---
+
+## 14. Soft Delete
+
+Soft delete ka matlab: delete karne ke time record ko permanently remove nahi karte; `deletedAt` timestamp set karte hain.
+
+```ts
+import { DeleteDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
+}
+```
+
+Usage:
+
+```ts
+const repo = dataSource.getRepository(User);
+
+// Soft delete (criteria ya entity)
+await repo.softDelete({ id });
+
+// Soft remove (entity instance)
+await repo.softRemove(user);
+
+// By default, soft-deleted rows exclude hote hain:
+await repo.find();
+
+// Deleted bhi include:
+await repo.find({ withDeleted: true });
+```
+
+Kab use karein:
+- records ko audit ke liye retain karna ho
+- “undo delete” type feature chahiye
+
+---
+
+## 15. Eager vs Lazy Relations
+
+Relations ke data load karne ka approach:
+
+### Eager Relations
+- relation automatically fetch hoti hai
+- `eager: true` use karo
+
+```ts
+@ManyToOne(() => Profile, { eager: true })
+profile: Profile;
+```
+
+### Lazy Relations
+- relation Promise ki tarah lazy-load hoti hai
+- relation property type Promise hona chahiye
+- `{ lazy: true }` option chahiye
+
+```ts
+@OneToMany(() => Photo, (photo) => photo.user, { lazy: true })
+photos: Promise<Photo[]>;
+
+// Later:
+const photos = await user.photos;
+```
+
+Important:
+- Lazy relations ko access karte hi extra queries ho sakti hain (N+1 risk)
+- Eager relations heavy joins create kar sakti hain
+
+---
+
+## 16. Locking
+
+Locking concurrency control ke liye use hoti hai (race conditions avoid).
+
+### Pessimistic Locking (DB lock)
+QueryBuilder pe `.setLock()`:
+
+```ts
+await dataSource
+  .getRepository(User)
+  .createQueryBuilder('user')
+  .setLock('pessimistic_write')
+  .where('user.id = :id', { id })
+  .getOne();
+```
+
+Common lock modes:
+- `pessimistic_read`
+- `pessimistic_write`
+- `pessimistic_partial_write`
+
+### Optimistic Locking (version column)
+Optimistic locking ke liye:
+- entity mein `@VersionColumn()`
+
+```ts
+import { VersionColumn } from 'typeorm';
+
+@VersionColumn()
+version: number;
+```
+
+Save ke time version check hota hai.
+
+---
+
+## 17. Embedded Entities
+
+Embedded entities (embeddables) se aap ek complex object ko columns ke bundle ki tarah store kar sakte ho.
+
+```ts
+import { Column } from 'typeorm';
+
+export class Address {
+  @Column()
+  line1: string;
+
+  @Column()
+  city: string;
+}
+
+// In Entity:
+import { Entity, PrimaryGeneratedColumn, Column as Col } from 'typeorm';
+import { Address } from './Address.embedded';
+
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Col(() => Address)
+  address: Address;
+}
+```
+
+Use case:
+- Value objects (Address, Money, GeoPoint)
+- Schema flattening (embedded fields alag columns ban jaati hain)
+
+---
+
+## 18. Tree Entities
+
+Tree entities for hierarchical data (categories, folders, org charts).
+
+```ts
+import { Entity, PrimaryGeneratedColumn, Tree, TreeChildren, TreeParent, TreeLevel } from 'typeorm';
+
+@Tree('closure-table')
+@Entity()
+export class Category {
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @TreeChildren()
+  children: Category[];
+
+  @TreeParent()
+  parent: Category;
+
+  @TreeLevel()
+  level: number;
+}
+```
+
+Notes:
+- TypeORM `TreeRepository` provide karta hai
+- closure-table/materialized-path/ltree strategies available hoti hain
+
+---
+
+## 19. Custom Repository
+
+Custom repository ka best use-case: business methods ko repository/service layer mein group karna.
+
+NestJS style (recommended): repository ko inject karke class mein wrap karo.
+
+```ts
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from './User.entity';
+
+@Injectable()
+export class UserRepository {
+  constructor(
+    @InjectRepository(User)
+    private readonly repo: Repository<User>,
+  ) {}
+
+  findActive() {
+    return this.repo.find({ where: { isActive: true } });
+  }
+}
+```
+
+Phir aap apni service/controller mein `UserRepository` methods call kar sakte ho.
+
+---
+
+## 20. Raw Queries
+
+Kab use karein:
+- complex SQL jo QueryBuilder se hard ho
+- performance tuning ke liye
+
+Parameterization zaroor use karo.
+
+```ts
+const rows = await dataSource.query(
+  'SELECT * FROM users WHERE email = $1',
+  [email],
+);
+```
+
+Alternative (QueryRunner):
+```ts
+const result = await queryRunner.query(
+  'SELECT * FROM users WHERE id = $1',
+  [id],
+);
+```
+
+---
+
+## 21. Indexes
+
+Indexes improve query performance for WHERE/JOIN columns.
+
+Entity level:
+
+```ts
+import { Index, Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+
+@Index(['email'], { unique: true })
+@Entity('users')
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column()
+  email: string;
+}
+```
+
+Column level:
+```ts
+import { Index, Column } from 'typeorm';
+
+@Index()
+@Column()
+name: string;
+```
+
+Tip:
+- Unique indexes useful for constraints
+- Over-indexing writes slow kar sakta hai
+
+---
+
+## 22. Pagination
+
+Offset pagination:
+
+```ts
+const page = 1;
+const limit = 10;
+
+const [items, total] = await repo.findAndCount({
+  skip: (page - 1) * limit,
+  take: limit,
+});
+```
+
+QueryBuilder:
+```ts
+await repo
+  .createQueryBuilder('user')
+  .orderBy('user.createdAt', 'DESC')
+  .skip(10)
+  .take(10)
+  .getMany();
+```
+
+Recommendation:
+- large datasets mein cursor-based pagination better hoti hai (stable order + cursor)
+
+---
+
+## 23. Migrations
+
+Migrations production mein recommended hain (kyunki `synchronize: false` hota hai).
+
+Project mein `migrationsRun: false` aur `synchronize: false` use ho raha hai (see `DatabaseConfigService`).
+
+General idea:
+1. migration generate
+2. migration run
+
+Migration file creation example:
+```bash
+# CLI example (project ke hisaab se command adjust karein)
+npx typeorm migration:generate -n AddUsersTable
+npx typeorm migration:run
+```
+
+Migration flow:
+- TypeORM schema changes ko versioned SQL mein convert karta hai
+- CI/CD mein controlled execution possible
+
+---
+
+## 24. Seeding
+
+Seed ka purpose: initial data (admins, specializations, sample rows).
+
+Tumhare project mein seeders:
+- `src/database/seeds/seed.ts`
+- `src/database/seeds/specialization.seeder.ts`
+- `src/database/seeds/admin.seeder.ts`
+
+Seed entrypoint:
+```ts
+// seed.ts
+await seedSpecializations(dataSource);
+await seedAdmin(dataSource);
+```
+
+Kab use karein:
+- local/dev environment
+- fresh DB setups
+
+---
+
+## 25. Connection Pooling
+
+PostgreSQL driver connection pooling handle karta hai. TypeORM ke through you can tune limits.
+
+Concept:
+- DB connections pool mein rehti hain
+- request aate hi pool se connection milti hai
+- connection release na karne pe pool saturated ho sakta hai
+
+Notes:
+- transactions mein `queryRunner.release()` (finally block) mandatory hai (Section 11)
+- production mein `max` connections tune karo (driver/TypeORM options via `extra`)
+
+---
+
+## 26. Common Gotchas
+
+1. `decimal` columns: TypeORM often string return karta hai. Money ke liye float mat use karo; convert responsibly.
+2. `synchronize: true`: production mein data/schema risk create karta hai. Prefer migrations.
+3. `select: false`: column automatically query nahi hoga (password/tokens).
+4. Soft delete: default queries deleted rows exclude karte hain. Use `withDeleted` when needed.
+5. Eager relations: can unintentionally fetch lots of data (N+1/large joins).
+6. Relations in `find()` vs `QueryBuilder`: `relations` uses join; performance check required.
+
+---
+
+## 27. Complete Decorators Reference
+
+Ye common decorators ka quick cheat-sheet hai:
+
+- Entity mapping:
+  - `@Entity()`
+  - `@PrimaryGeneratedColumn()`
+  - `@Column()`
+  - `@Index()`
+- Timestamps + soft delete:
+  - `@CreateDateColumn()`
+  - `@UpdateDateColumn()`
+  - `@DeleteDateColumn()`
+- Relations:
+  - `@ManyToOne()`
+  - `@OneToMany()`
+  - `@OneToOne()`
+  - `@ManyToMany()`
+  - `@JoinColumn()`
+  - `@JoinTable()`
+- Value/embedded/trees:
+  - `@Column(() => EmbeddedType)`
+  - `@Tree()`, `@TreeChildren()`, `@TreeParent()`, `@TreeLevel()`
+- Lifecycle:
+  - `@BeforeInsert()`, `@BeforeUpdate()`
+  - `@AfterLoad()`, etc.
+- Locking:
+  - `@VersionColumn()` (optimistic)
+
+If aap chaho, main tumhari existing entities (`students`, `courses`, etc.) ke hisaab se “realistic examples” bhi add kar sakta hoon.
+
