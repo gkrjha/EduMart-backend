@@ -3,6 +3,7 @@ import { Student } from 'src/modules/students/entities/student.entity';
 import {
   Column,
   Entity,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   Unique,
@@ -14,16 +15,21 @@ export class Rating {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'int', width: 1 })
+  @Column({ type: 'int' })
   rating: number;
 
+  @Column({ nullable: true, type: 'text' })
+  message: string | null;
+
   @ManyToOne(() => Student, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'student_id' })
   student: Student;
 
   @Column()
   student_id: string;
 
   @ManyToOne(() => Course, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'course_id' })
   course: Course;
 
   @Column()

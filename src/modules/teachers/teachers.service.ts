@@ -10,6 +10,7 @@ import { Teacher } from './entities/teacher.entity';
 import { CloudinaryService } from 'src/common/cloudinary/cloudinary.service';
 import { Usermanagement } from '../usermanagement/entities/usermanagement.entities';
 import { Specialization } from '../specializations/entities/specialization.entity';
+import { Qualification } from 'src/common/enums/enum';
 import * as bcrypt from 'bcrypt';
 import { UpdateTeacherDto } from './dtos/updateteacher.dto';
 
@@ -43,12 +44,32 @@ export class TeachersService {
         profileUrl = uploaded.secure_url;
       }
 
+      const specializationNames = Array.isArray(teacherDto.specializationNames)
+        ? teacherDto.specializationNames
+        : [teacherDto.specializationNames];
+
       const specializations = await manager.find(Specialization, {
-        where: teacherDto.specializationNames.map((name) => ({ name })),
+        where: specializationNames.map((name) => ({ name })),
       });
 
-      if (specializations.length !== teacherDto.specializationNames.length) {
+      if (specializations.length !== specializationNames.length) {
         throw new BadRequestException('One or more specializations not found');
+      }
+
+      // Qualification-based certificate validation (before saving)
+      if (
+        (teacherDto.qualification === Qualification.MASTER ||
+          teacherDto.qualification === Qualification.PHD) &&
+        !files.master_certificate?.[0]
+      ) {
+        throw new BadRequestException(
+          'Master certificate is required for Master/PhD qualification',
+        );
+      }
+      if (teacherDto.qualification === Qualification.PHD && !files.phD?.[0]) {
+        throw new BadRequestException(
+          'PhD certificate is required for PhD qualification',
+        );
       }
 
       const teacherEntity = manager.create(Teacher, {
@@ -67,6 +88,7 @@ export class TeachersService {
       const savedTeacher = await manager.save(teacherEntity);
 
       const certificateUrls: any = {};
+
       for (const key of [
         'x_certificate',
         'xii_certificate',

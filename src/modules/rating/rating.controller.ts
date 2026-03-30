@@ -8,8 +8,9 @@ import {
   Delete,
   Query,
   UseGuards,
-  Req,
 } from '@nestjs/common';
+import { User } from 'src/common/decorators/get-user.decorator';
+import type { AuthUser } from 'src/common/types/auth-user.type';
 import {
   ApiTags,
   ApiOperation,
@@ -26,7 +27,7 @@ import { JwtAuthGuard } from 'src/common/jwt/jwt-auth.guard';
 @Controller('rating')
 @ApiBearerAuth()
 export class RatingController {
-  constructor(private readonly ratingService: RatingService) {}
+  constructor(private readonly ratingService: RatingService) { }
 
   @Post()
   @ApiBearerAuth('access-token')
@@ -36,24 +37,16 @@ export class RatingController {
   @ApiResponse({ status: 403, description: 'Only students can rate a course' })
   create(
     @Body() createRatingDto: CreateRatingDto,
-    @Req() req: { user: { id: string } },
+    @User() user: AuthUser,
   ) {
-    return this.ratingService.create(createRatingDto, req.user.id);
+    return this.ratingService.create(createRatingDto, user.id);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all ratings' })
   @ApiResponse({ status: 200, description: 'List of all ratings' })
-  @ApiQuery({
-    name: 'courseId',
-    required: false,
-    description: 'Filter by course ID',
-  })
-  @ApiQuery({
-    name: 'studentId',
-    required: false,
-    description: 'Filter by student ID',
-  })
+  @ApiQuery({ name: 'courseId', required: false, description: 'Filter by course ID' })
+  @ApiQuery({ name: 'studentId', required: false, description: 'Filter by student ID' })
   findAll(
     @Query('courseId') courseId?: string,
     @Query('studentId') studentId?: string,
@@ -77,7 +70,6 @@ export class RatingController {
   }
 
   @Patch(':id')
-  // @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update rating' })
   @ApiResponse({ status: 200, description: 'Rating updated successfully' })
   update(@Param('id') id: string, @Body() updateRatingDto: UpdateRatingDto) {
@@ -85,7 +77,6 @@ export class RatingController {
   }
 
   @Delete(':id')
-  // @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Delete rating' })
   @ApiResponse({ status: 200, description: 'Rating deleted successfully' })
   remove(@Param('id') id: string) {
